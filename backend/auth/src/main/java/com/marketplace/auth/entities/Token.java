@@ -18,19 +18,19 @@ import lombok.NoArgsConstructor;
 @Table(name = "tokens")
 @Entity
 public class Token {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @Column(columnDefinition = "TEXT", name ="refresh_token")
-    private String refreshToken;
+  @Column(columnDefinition = "TEXT", name = "refresh_token")
+  private String refreshToken;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id")
-    private User user;
+  @ManyToOne
+  @JoinColumn(name = "user_id")
+  private User user;
 
-    public Token(String token, User user) {
-        this.refreshToken = token;
-        this.user = user;
-    }
+  public Token(String token, User user) {
+    this.refreshToken = token;
+    this.user = user;
+  }
 }

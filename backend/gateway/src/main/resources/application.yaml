@@ -4,28 +4,32 @@ server:
 
 spring:
     application:
-        name: gateway-service
+        name: "gateway-service"
 
     cloud:
         gateway:
-            routes:
-              - id: auth-service
-                uri: http://localhost:8081
-                predicates:
-                    - Path=/api/auth/**
-                filters:
-                    - StripPrefix=1
+            public-paths:
+              - /auth/signin
+              - /auth/signup
+              - /auth/refresh
+              
+            server:
+                webflux:
+                    routes:
+                      - id: auth-service
+                        uri: http://localhost:8081
+                        predicates:
+                            - Path=/auth/**
 
-              - id: user-service
-                uri: http://localhost:8082
-                predicates:
-                    - Path=/api/users/**
-                filters:
-                    - StripPrefix=1
+                      - id: user-service
+                        uri: http://localhost:8082
+                        predicates:
+                            - Path=/users/**
 
-              - id: product-service
-                uri: http://localhost:8083
-                predicates:
-                    - Path=/api/products/**
-                filters:
-                    - StripPrefix=1      
+                      - id: product-service
+                        uri: http://localhost:8083
+                        predicates:
+                            - Path=/products/**
+
+jwt:
+    public-path: classpath:jwt/public.pem

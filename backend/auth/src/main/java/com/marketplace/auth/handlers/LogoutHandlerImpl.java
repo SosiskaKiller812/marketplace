@@ -17,28 +17,28 @@ import lombok.AllArgsConstructor;
 @Component
 public class LogoutHandlerImpl implements LogoutHandler {
 
-    private static final String BEARER_PREFIX = "Bearer ";
-    private static final int BEARER_PREFIX_LENGTH = BEARER_PREFIX.length();
+  private static final String BEARER_PREFIX = "Bearer ";
+  private static final int BEARER_PREFIX_LENGTH = BEARER_PREFIX.length();
 
-    private final TokenRepository tokenRepository;
+  private final TokenRepository tokenRepository;
 
-    @Override
-    public void logout(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
-        String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+  @Override
+  public void logout(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
+    String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
 
-        if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
-            return;
-        }
-
-        String refreshToken = authHeader.substring(BEARER_PREFIX_LENGTH);
-
-        Token tokenEntity = tokenRepository.findByRefreshToken(refreshToken).orElse(null);
-
-        if (tokenEntity != null) {
-            tokenRepository.delete(tokenEntity);
-        }
-
-        SecurityContextHolder.clearContext();
+    if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
+      return;
     }
+
+    String refreshToken = authHeader.substring(BEARER_PREFIX_LENGTH);
+
+    Token tokenEntity = tokenRepository.findByRefreshToken(refreshToken).orElse(null);
+
+    if (tokenEntity != null) {
+      tokenRepository.delete(tokenEntity);
+    }
+
+    SecurityContextHolder.clearContext();
+  }
 
 }

@@ -16,6 +16,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -28,34 +29,44 @@ import lombok.NoArgsConstructor;
 @Entity
 public class User {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @Column(name = "name", unique = true)
-    private String name;
+  @Column(name = "username", unique = true, nullable = false)
+  private String username;
 
-    @Column(unique = true)
-    private String email;
+  @Column(name = "name")
+  private String name;
 
-    @Column
-    private String password;
+  @Column(unique = true)
+  private String email;
 
-    @ManyToMany(fetch = FetchType.EAGER)
-    @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
-    private Set<Role> roles;
+  @Column
+  private String password;
 
-    @CreationTimestamp
-    private LocalDateTime createdAt;
+  @ManyToMany(fetch = FetchType.EAGER)
+  @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))
+  private Set<Role> roles;
 
-    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
-    private List<Token> tokens;
+  @CreationTimestamp
+  private LocalDateTime createdAt;
 
-    public User(String name, String email, String password, Set<Role> roles) {
-        this.name = name;
-        this.email = email;
-        this.password = password;
-        this.roles = roles;
+  @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+  private List<Token> tokens;
+
+  public User(String username, String email, String password, Set<Role> roles) {
+    this.username = username;
+    this.email = email;
+    this.password = password;
+    this.roles = roles;
+  }
+
+  @PrePersist
+  private void onCreate() {
+    if (this.name == null || this.name.isBlank()) {
+      this.name = this.username;
     }
+  }
 
 }

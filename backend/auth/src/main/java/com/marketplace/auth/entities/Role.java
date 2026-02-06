@@ -19,34 +19,34 @@ import lombok.NoArgsConstructor;
 @Entity
 public class Role {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private long id;
 
-    @Column(unique = true)
-    private String name;
+  @Column(unique = true)
+  private String name;
 
-    public Role(String name) {
-        this.name = name;
-    }
+  public Role(String name) {
+    this.name = name;
+  }
 
-    @Override
-    public String toString() {
-        return name;
-    }
+  @Override
+  public String toString() {
+    return name;
+  }
 
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (obj == null || getClass() != obj.getClass())
-            return false;
-        Role role = (Role) obj;
-        return id == role.id && Objects.equals(role.name, this.name);
-    }
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null || getClass() != obj.getClass())
+      return false;
+    Role role = (Role) obj;
+    return id == role.id && Objects.equals(role.name, this.name);
+  }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, name);
-    }
+  @Override
+  public int hashCode() {
+    return Objects.hash(id, name);
+  }
 }

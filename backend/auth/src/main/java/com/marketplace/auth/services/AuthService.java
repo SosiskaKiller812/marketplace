@@ -4,19 +4,19 @@ import java.util.Set;
 
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.marketplace.auth.entities.JwtPayload;
 import com.marketplace.auth.entities.Role;
 import com.marketplace.auth.entities.Token;
 import com.marketplace.auth.entities.User;
-import com.marketplace.auth.entities.UserDetailsImpl;
 import com.marketplace.auth.entities.Request.LoginRequest;
 import com.marketplace.auth.entities.Request.RegisterRequest;
 import com.marketplace.auth.entities.Response.AuthenticationResponse;
 import com.marketplace.auth.entities.Response.UserResponse;
+import com.marketplace.auth.entities.impl.UserDetailsImpl;
 import com.marketplace.auth.mappers.UserMapper;
 import com.marketplace.auth.repositories.RoleRepository;
 import com.marketplace.auth.repositories.TokenRepository;
@@ -25,108 +25,115 @@ import com.marketplace.auth.repositories.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @AllArgsConstructor
 @Service
 public class AuthService {
 
-    private final TokenRepository tokenRepository;
+  private static final String ROLE_USER = "ROLE_USER";
 
-    private final UserRepository userRepository;
+  private final TokenRepository tokenRepository;
 
-    private final RoleRepository roleRepository;
+  private final UserRepository userRepository;
 
-    private final AuthenticationManager authenticationManager;
+  private final RoleRepository roleRepository;
 
-    private final JwtService jwtService;
+  private final AuthenticationManager authenticationManager;
 
-    private final PasswordEncoder passwordEncoder;
+  private final JwtService jwtService;
 
-    private final UserMapper userMapper;
+  private final PasswordEncoder passwordEncoder;
 
-    public UserResponse register(RegisterRequest registerRequest) {
+  private final UserMapper userMapper;
 
-        Role role = roleRepository.findByName("USER").orElseThrow();
+  @Transactional
+  public UserResponse register(RegisterRequest registerRequest) {
 
-        User newUser = new User(
-                registerRequest.getName(),
-                registerRequest.getEmail(),
-                passwordEncoder.encode(registerRequest.getPassword()),
-                Set.of(role));
+    Role role = roleRepository.findByName(ROLE_USER).orElseThrow();
 
-        userRepository.save(newUser);
+    User newUser = new User(
+        registerRequest.getUsername(),
+        registerRequest.getEmail(),
+        passwordEncoder.encode(registerRequest.getPassword()),
+        Set.of(role));
 
-        return userMapper.toUserResponse(newUser);
+    if (userRepository.existsByUsername(registerRequest.getUsername())) {
+      throw new RuntimeException("Username already exists");
     }
 
-    public AuthenticationResponse login(LoginRequest loginRequest) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.getName(), loginRequest.getPassword()));
-
-        User user = userRepository.findByName(loginRequest.getName()).orElseThrow();
-
-        UserDetails userDetails = new UserDetailsImpl(user);
-
-        String accessToken = jwtService.generateAccessToken(userDetails);
-        String refreshToken = jwtService.generateRefreshToken(userDetails);
-
-        Token token = new Token(refreshToken, user);
-        tokenRepository.save(token);
-
-        return new AuthenticationResponse(accessToken, refreshToken);
+    if (userRepository.existsByEmail(registerRequest.getEmail())) {
+      throw new RuntimeException("This email already in use");
     }
 
-    @Transactional
-    public AuthenticationResponse refreshToken(String incomingRefreshToken) {
+    userRepository.save(newUser);
 
-        String username = jwtService.extractUsername(incomingRefreshToken);
+    return userMapper.toUserResponse(newUser);
+  }
 
-        User user = userRepository.findByName(username)
-                .orElseThrow(() -> new UsernameNotFoundException("No user found"));
+  @Transactional
+  public AuthenticationResponse login(LoginRequest loginRequest) {
+    Authentication auth = authenticationManager.authenticate(
+        new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
 
-        Token existingToken = tokenRepository.findByRefreshToken(incomingRefreshToken)
-                .orElseThrow(() -> new RuntimeException("Refresh token not found in database"));
+    UserDetailsImpl userDetails = (UserDetailsImpl) auth.getPrincipal();
 
-        if (!existingToken.getUser().equals(user)) {
-            throw new RuntimeException("Something went wrong with refreshToken and user");
-        }
+    User user = userRepository.findById(userDetails.getId()).orElseThrow();
 
-        UserDetails userDetails = new UserDetailsImpl(user);
+    String accessToken = jwtService.generateAccessToken(userDetails);
+    String refreshToken = jwtService.generateRefreshToken(userDetails);
 
-        if (jwtService.isRefreshTokenValid(incomingRefreshToken, userDetails)) {
+    Token token = new Token(refreshToken, user);
+    tokenRepository.save(token);
 
-            String newAccessToken = jwtService.generateAccessToken(userDetails);
-            String newRefreshToken = jwtService.generateRefreshToken(userDetails);
+    return new AuthenticationResponse(accessToken, refreshToken);
+  }
 
-            Token newEntityRefreshToken = new Token(newRefreshToken, user);
+  @Transactional
+  public AuthenticationResponse refreshToken(String incomingRefreshToken) {
+    JwtPayload payload = jwtService.parse(incomingRefreshToken);
 
-            tokenRepository.deleteByRefreshToken(incomingRefreshToken);
-            tokenRepository.save(newEntityRefreshToken);
+    jwtService.validateRefreshToken(payload);
 
-            return new AuthenticationResponse(newAccessToken, newRefreshToken);
-        } else {
-            throw new RuntimeException("Refresh token not valid");
-        }
+    User user = userRepository.findById(payload.getId())
+        .orElseThrow(() -> new RuntimeException("User not found by id"));
 
+    Token existingToken = tokenRepository.findByRefreshToken(incomingRefreshToken)
+        .orElseThrow(() -> new RuntimeException("Refresh token not found in database"));
+
+    if (!existingToken.getUser().getId().equals(user.getId())) {
+      throw new RuntimeException("Something went wrong with refreshToken and user");
     }
 
-    @Transactional
-    public void addRole(String username, String roleName) {
-        Role role = roleRepository.findByName(roleName)
-                .orElseThrow(() -> new EntityNotFoundException("Role not found"));
-        User user = userRepository.findByName(username)
-                .orElseThrow(() -> new EntityNotFoundException("User not found"));
-        user.getRoles().add(role);
-        userRepository.save(user);
-    }
+    UserDetailsImpl userDetails = UserDetailsImpl.fromUser(user);
 
-    @Transactional
-    public void removeRole(String username, String roleName) {
-        Role role = roleRepository.findByName(roleName)
-                .orElseThrow(() -> new EntityNotFoundException("Role not found"));
-        User user = userRepository.findByName(username)
-                .orElseThrow(() -> new EntityNotFoundException("User not found"));
-        user.getRoles().add(role);
-        userRepository.save(user);
-    }
+    String newAccessToken = jwtService.generateAccessToken(userDetails);
+    String newRefreshToken = jwtService.generateRefreshToken(userDetails);
+
+    tokenRepository.deleteByRefreshToken(incomingRefreshToken);
+    tokenRepository.save(new Token(newRefreshToken, user));
+
+    return new AuthenticationResponse(newAccessToken, newRefreshToken);
+  }
+
+  @Transactional
+  public void addRole(String username, String roleName) {
+    Role role = roleRepository.findByName(roleName)
+        .orElseThrow(() -> new EntityNotFoundException("Role not found"));
+    User user = userRepository.findByUsername(username)
+        .orElseThrow(() -> new EntityNotFoundException("User not found"));
+    user.getRoles().add(role);
+    userRepository.save(user);
+  }
+
+  @Transactional
+  public void removeRole(String username, String roleName) {
+    Role role = roleRepository.findByName(roleName)
+        .orElseThrow(() -> new EntityNotFoundException("Role not found"));
+    User user = userRepository.findByUsername(username)
+        .orElseThrow(() -> new EntityNotFoundException("User not found"));
+    user.getRoles().add(role);
+    userRepository.save(user);
+  }
 }

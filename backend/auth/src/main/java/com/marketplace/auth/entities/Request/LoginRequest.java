@@ -7,9 +7,9 @@ import lombok.Data;
 @Data
 @AllArgsConstructor
 public class LoginRequest {
-    
-    private String name;
 
-    @Column
-    private String password;
+  private String username;
+
+  @Column
+  private String password;
 }

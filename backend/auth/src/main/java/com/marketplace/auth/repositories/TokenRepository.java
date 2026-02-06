@@ -9,6 +9,7 @@ import com.marketplace.auth.entities.Token;
 
 @Repository
 public interface TokenRepository extends JpaRepository<Token, Long> {
-    Optional<Token> findByRefreshToken(String refreshToken);
-    void deleteByRefreshToken(String refreshToken);
+  Optional<Token> findByRefreshToken(String refreshToken);
+
+  void deleteByRefreshToken(String refreshToken);
 }

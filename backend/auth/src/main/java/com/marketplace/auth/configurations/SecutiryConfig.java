@@ -29,57 +29,55 @@ import lombok.AllArgsConstructor;
 @Configuration
 @EnableMethodSecurity
 public class SecutiryConfig {
-    private final UserDetailsServiceImpl userDetailsService;
+  private final UserDetailsServiceImpl userDetailsService;
 
-    private final AuthTokenFilter authTokenFilter;
+  private final AuthTokenFilter authTokenFilter;
 
-    private final AccessDeniedHandlerImpl accessDeniedHandlerImpl;
+  private final AccessDeniedHandlerImpl accessDeniedHandlerImpl;
 
-    private final LogoutHandlerImpl logoutHandlerImpl;
+  private final LogoutHandlerImpl logoutHandlerImpl;
 
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-                .csrf(AbstractHttpConfigurer::disable)
-                .exceptionHandling(ex -> ex
-                        .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.BAD_REQUEST))
-                        .accessDeniedHandler(accessDeniedHandlerImpl))
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/signup", "/auth/signin", "/auth/refresh").permitAll()
-                        .requestMatchers("/auth/logout").authenticated()
-                        .requestMatchers("/auth/admin/**").hasAuthority("ADMIN")
-                        .anyRequest().authenticated()
-                )
-                .logout(logout -> logout
-                        .logoutUrl("/auth/logout")
-                        .addLogoutHandler(logoutHandlerImpl)
-                        .logoutSuccessHandler((request, response, authentication) -> {
-                            SecurityContextHolder.clearContext();
-                            response.setStatus(200);
-                        }));
+  @Bean
+  public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    http
+        .csrf(AbstractHttpConfigurer::disable)
+        .exceptionHandling(ex -> ex
+            .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
+            .accessDeniedHandler(accessDeniedHandlerImpl))
+        .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+        .authorizeHttpRequests(auth -> auth
+            .requestMatchers("/auth/signup", "/auth/signin", "/auth/refresh").permitAll()
+            .requestMatchers("/auth/logout").authenticated()
+            .requestMatchers("/auth/admin/**").hasAuthority("ADMIN")
+            .anyRequest().authenticated())
+        .logout(logout -> logout
+            .logoutUrl("/auth/logout")
+            .addLogoutHandler(logoutHandlerImpl)
+            .logoutSuccessHandler((request, response, authentication) -> {
+              SecurityContextHolder.clearContext();
+              response.setStatus(200);
+            }));
 
-        http.authenticationProvider(authenticationProvider());
-        http.addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class);
+    http.authenticationProvider(authenticationProvider());
+    http.addFilterBefore(authTokenFilter, UsernamePasswordAuthenticationFilter.class);
 
-        return http.build();
-    }
+    return http.build();
+  }
 
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-        return config.getAuthenticationManager();
-    }
+  @Bean
+  public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+    return config.getAuthenticationManager();
+  }
 
-    @Bean
-    public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
-        provider.setPasswordEncoder(passwordEncoder());
-        return provider;
-    }
+  @Bean
+  public AuthenticationProvider authenticationProvider() {
+    DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
+    provider.setPasswordEncoder(passwordEncoder());
+    return provider;
+  }
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+  @Bean
+  public PasswordEncoder passwordEncoder() {
+    return new BCryptPasswordEncoder();
+  }
 }
