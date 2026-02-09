@@ -1,0 +1,163 @@
+databaseChangeLog:
+- changeSet:
+    id: 1770500418949-1
+    author: Admin (generated)
+    changes:
+    - createTable:
+        columns:
+        - column:
+            autoIncrement: true
+            constraints:
+              nullable: false
+              primaryKey: true
+              primaryKeyName: roles_pkey
+            name: id
+            type: BIGINT
+        - column:
+            name: name
+            type: VARCHAR(255)
+        tableName: roles
+- changeSet:
+    id: 1770500418949-2
+    author: Admin (generated)
+    changes:
+    - createTable:
+        columns:
+        - column:
+            autoIncrement: true
+            constraints:
+              nullable: false
+              primaryKey: true
+              primaryKeyName: tokens_pkey
+            name: id
+            type: BIGINT
+        - column:
+            name: refresh_token
+            type: TEXT
+        - column:
+            name: user_id
+            type: BIGINT
+        tableName: tokens
+- changeSet:
+    id: 1770500418949-3
+    author: Admin (generated)
+    changes:
+    - createTable:
+        columns:
+        - column:
+            constraints:
+              nullable: false
+              primaryKey: true
+              primaryKeyName: user_roles_pkey
+            name: user_id
+            type: BIGINT
+        - column:
+            constraints:
+              nullable: false
+              primaryKey: true
+              primaryKeyName: user_roles_pkey
+            name: role_id
+            type: BIGINT
+        tableName: user_roles
+- changeSet:
+    id: 1770500418949-4
+    author: Admin (generated)
+    changes:
+    - createTable:
+        columns:
+        - column:
+            autoIncrement: true
+            constraints:
+              nullable: false
+              primaryKey: true
+              primaryKeyName: users_pkey
+            name: id
+            type: BIGINT
+        - column:
+            name: created_at
+            type: TIMESTAMP WITHOUT TIME ZONE
+        - column:
+            name: email
+            type: VARCHAR(255)
+        - column:
+            name: name
+            type: VARCHAR(255)
+        - column:
+            name: password
+            type: VARCHAR(255)
+        - column:
+            constraints:
+              nullable: false
+            name: username
+            type: VARCHAR(255)
+        tableName: users
+- changeSet:
+    id: 1770500418949-5
+    author: Admin (generated)
+    changes:
+    - addUniqueConstraint:
+        columnNames: name
+        constraintName: ukofx66keruapi6vyqpv6f2or37
+        tableName: roles
+- changeSet:
+    id: 1770500418949-6
+    author: Admin (generated)
+    changes:
+    - addUniqueConstraint:
+        columnNames: email
+        constraintName: uk6dotkott2kjsp8vw4d0m25fb7
+        tableName: users
+- changeSet:
+    id: 1770500418949-7
+    author: Admin (generated)
+    changes:
+    - addUniqueConstraint:
+        columnNames: username
+        constraintName: ukr43af9ap4edm43mmtq01oddj6
+        tableName: users
+- changeSet:
+    id: 1770500418949-8
+    author: Admin (generated)
+    changes:
+    - addForeignKeyConstraint:
+        baseColumnNames: user_id
+        baseTableName: tokens
+        constraintName: fk2dylsfo39lgjyqml2tbe0b0ss
+        deferrable: false
+        initiallyDeferred: false
+        onDelete: NO ACTION
+        onUpdate: NO ACTION
+        referencedColumnNames: id
+        referencedTableName: users
+        validate: true
+- changeSet:
+    id: 1770500418949-9
+    author: Admin (generated)
+    changes:
+    - addForeignKeyConstraint:
+        baseColumnNames: role_id
+        baseTableName: user_roles
+        constraintName: fkh8ciramu9cc9q3qcqiv4ue8a6
+        deferrable: false
+        initiallyDeferred: false
+        onDelete: NO ACTION
+        onUpdate: NO ACTION
+        referencedColumnNames: id
+        referencedTableName: roles
+        validate: true
+- changeSet:
+    id: 1770500418949-10
+    author: Admin (generated)
+    changes:
+    - addForeignKeyConstraint:
+        baseColumnNames: user_id
+        baseTableName: user_roles
+        constraintName: fkhfh9dx7w3ubf1co1vdev94g3f
+        deferrable: false
+        initiallyDeferred: false
+        onDelete: NO ACTION
+        onUpdate: NO ACTION
+        referencedColumnNames: id
+        referencedTableName: users
+        validate: true
+
